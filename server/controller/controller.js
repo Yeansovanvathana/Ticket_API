@@ -5,45 +5,63 @@ dotenv.config();
 var UserDB = require("../model/model");
 
 // view all user:
-exports.findAll = async(req, res) => {
+exports.findAll = async (req, res) => {
   UserDB.find()
     .then((user) => {
       res.send(user);
       console.log("Request: Successful.");
     })
     .catch((err) => {
-      res
-        .status(500)
-        .send({
-          message:
-            err.message || "Error Occurred while retriving user information",
-        });
+      res.status(500).send({
+        message:
+          err.message || "Error Occurred while retriving user information",
+      });
     });
 };
- // create user:
+// create user:
 exports.create = async (req, res) => {
-  if (!req.body) {
-    res
-      .status(401)
-      .send({ request: false, msg: "Please fill full information." });
-    return;
+  const { ticketId, transactionId, phoneNumber } = req.body;
+
+  if (!ticketId || !transactionId || !phoneNumber) {
+    return res
+      .status(400)
+      .send({
+        success: false,
+        message: "Please provide all required information.",
+      });
   }
-  console.log(req.body)
-  // User:
+
   const newUser = new UserDB({
-    ticketId: req.body.ticketId,
-    transactionId: req.body.transactionId,
-    phoneNumber: req.body.phoneNumber,
+    ticketId,
+    transactionId,
+    phoneNumber,
   });
 
-  try{
-    await newUser.save()
-    res.status(201).send(newUser)
-  } catch(e) {
-    res.status(400).send(e)
+  try {
+    const createdUser = await newUser.save();
+    res.status(201).send({ success: true, user: createdUser });
+  } catch (error) {
+    res
+      .status(500)
+      .send({
+        success: false,
+        message: "Error creating user.",
+        error: error.message,
+      });
   }
 };
 
-exports.deleteMany = async(req, res) => {
-  UserDB.deleteMany({})
-}
+exports.deleteMany = async (req, res) => {
+  try {
+    const result = await UserDB.deleteMany({});
+    res.status(200).send({
+      message: "All users have been deleted.",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    res.status(500).send({
+      message: "Error occurred while deleting users.",
+      error: err.message,
+    });
+  }
+};
